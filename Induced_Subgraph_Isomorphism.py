@@ -5,14 +5,16 @@ def load_instance(input_file_name):
     # the instance is The vertice count in G1, Edge count in G1, Vertice count in G2, Edge count in G2
     # Edge set of G1
     # Edge set of G2
-    class Graph():
-        V = []
-        E = {} # Adjacency list of edges
+    class Graph:
+        def __init__(self,id):
+            self.ID = id
+            self.V = []
+            self.E = {} # Adjacency list of edges
 
 
-    global V1, E1, V2, E2
-    g1 = Graph()
-    g2 = Graph()
+
+    g1 = Graph(1)
+    g2 = Graph(2)
 
     with open(input_file_name, "r") as file:
         for line in file: # Edge set of G1
@@ -32,7 +34,10 @@ def load_instance(input_file_name):
                 else:
                     g1.E[line[1]] = [line[0]]
 
+
         for line in file: # Edge set of G2
+            print(line)
+
             if line == "#####":
                 break
             line = line.split()
@@ -48,10 +53,10 @@ def load_instance(input_file_name):
                     g2.E[line[1]].append(line[0])
                 else:
                     g2.E[line[1]] = [line[0]]
-    
+
     g1.V = g1.E.keys()
     g2.V = g2.E.keys()
 
-    print(g1.V, g2.V)
+    print(f"{g1.V} \n\n {g2.V}")
 
 load_instance("test.in")
