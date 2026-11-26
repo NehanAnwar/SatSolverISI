@@ -81,7 +81,30 @@ def encode(pattern_graph, host_graph):
     k = pattern_graph.VerticeCount
     n = host_graph.VerticeCount
 
-        
+    def pattern_vertices_map_to_one_host_vertex_each(pattern,host):  #every vertex in the pattern graph maps to exactly one vertex in the host graph, (God please rename this function before submission)
+        for i in pattern.Vertices:
+            ### foreach i in patten, i maps to at least one vertex in host
+            clauses.append([var(i,a,n) for a in host.Vertices])
+
+            for a in host.Vertices:
+                for b in host.Vertices:
+                    if a<b:
+                        # for each i in pattern, for every distinct a,b . NOT((i mapped to a) AND (i mapped to b)) = (NOT(i mapped to a) OR NOT(i mapped to b))
+                        # so every vertex in pattern be mapped to at most 1 vertex in host
+                        clauses.append([-var(i,a,n),-var(i,b,n)])
+
+    def injectivity(pattern,host):
+        for i in pattern.Vertices:
+            for j in pattern.Vertices:
+                if i<j:
+                    for a in host.Vertices:
+                        # for every distinct vertices i,j in pattern, vertex a in host, if i maps to a then j must not map to a
+                        # NOT((i maps to a) AND (j maps to a)) = (NOT(i maps to a) OR NOT(j maps to a)) 
+                        clauses.append(-var(i,a,n),-var(j,a,n))
+
+    ## TODO: Decode clauses for induction, args, result printing, solver call
+
+
 
 
 Pattern,Host = load_instance("test.in")
