@@ -100,11 +100,74 @@ def encode(pattern_graph, host_graph):
                     for a in host.Vertices:
                         # for every distinct vertices i,j in pattern, vertex a in host, if i maps to a then j must not map to a
                         # NOT((i maps to a) AND (j maps to a)) = (NOT(i maps to a) OR NOT(j maps to a)) 
-                        clauses.append(-var(i,a,n),-var(j,a,n))
-
-    ## TODO: Decode clauses for induction, args, result printing, solver call
+                        clauses.append([-var(i,a,n),-var(j,a,n)])
 
 
+    pattern_vertices_map_to_one_host_vertex_each(pattern_graph,host_graph)
+    injectivity(pattern_graph,host_graph)
+    return clauses
+    ## TODO: Decode clauses for induction result printing, solver call
+
+
+def call_solver(cnf,nr_vars,output_name,solver_name,verbosity):
+    # print CNF into formula.cnf in DIMACS format
+    with open(output_name, "w") as file:
+        file.write("p cnf " + str(nr_vars) +" " + str(len(cnf)) + '\n')
+        for clause in cnf:
+            file.write(' '.join(str(lit) for lit in clause) + " 0" +'\n')
+
+    # call the solver and return the output
+    print("running solver")
+    return subprocess.run(['./' + solver_name, '-model', '-verb=' + str(verbosity) , output_name], stdout=subprocess.PIPE)
+    print("done running solver")
+
+
+
+parser = ArgumentParser()
+
+parser.add_argument(
+    "-i",
+    "--input",
+    default="input.in",
+    type=str,
+    help=(
+        "The instance file."
+    ),
+)
+parser.add_argument(
+    "-o",
+    "--output",
+    default="formula.cnf",
+    type=str,
+    help=(
+        "Output file for the DIMACS format (i.e. the CNF formula)."
+    ),
+)
+parser.add_argument(
+    "-s",
+    "--solver",
+    default="glucose",
+    type=str,
+    help=(
+        "The SAT solver to be used."
+    ),
+)
+parser.add_argument(
+    "-v",
+    "--verb",
+    default=1,
+    type=int,
+    choices=range(0,2),
+    help=(
+        "Verbosity of the SAT solver used."
+    ),
+)
+args = parser.parse_args()
 
 
 Pattern,Host = load_instance("test.in")
+cnf = encode(Pattern,Host)
+print(cnf)
+result = call_solver(cnf,Pattern.VerticeCount * Host.VerticeCount,args.output,args.solver,args.verb)
+print(result)
+
