@@ -8,6 +8,10 @@ class Graph:
         self.VerticeCount = 0
         self.Vertices = []
         self.Edges = {} # Adjacency list of edges
+    
+    def has_edge(self,u,v): # check if edge contained in graph
+        return True if v in self.Edges[u] else False
+
 
 
 
@@ -23,6 +27,7 @@ def load_instance(input_file_name):
     with open(input_file_name, "r") as file:
 
         g1.Vertices = [int(x) for x in next(file).split()] # Reads Vertices of Graph 1
+        print(g1.Vertices)
         g2.Vertices = [int(x) for x in next(file).split()] # Reads Vertices of Graph 2
 
         for line in file: # Reads Edge set of G1
@@ -66,14 +71,14 @@ def load_instance(input_file_name):
         if g2.VerticeCount < g1.VerticeCount:
             raise Exception("Vertices in pattern cannot be greater than Vertices in host")
 
-    print(f"{g1.Vertices} \n\n {g2.Vertices}")
-    print(f"{g1.Edges}\n\n{g2.Edges}")
+    # print(f"{g1.Vertices} \n\n {g2.Vertices}")
+    # print(f"{g1.Edges}\n\n{g2.Edges}")
     return g1,g2
 
 
 def var(i,a,host_count):
     #  vertex i in pattern -> vertex a in Host
-    return i * host_count + a + 1
+    return (i-1) * host_count + (a-1) + 1
 
 def encode(pattern_graph, host_graph):
 
@@ -102,11 +107,30 @@ def encode(pattern_graph, host_graph):
                         # NOT((i maps to a) AND (j maps to a)) = (NOT(i maps to a) OR NOT(j maps to a)) 
                         clauses.append([-var(i,a,n),-var(j,a,n)])
 
+    def inductivity(pattern,host):
+        for i in pattern.Vertices:
+            for j in pattern.Vertices:
+                if i < j:
+                    for a in host.Vertices:
+                        for b in host.Vertices:
+                            if a != b:
+
+                                # for every unique pair of vertices i,j in pattern, we check if the unique vertices they are mapped to in host, a,b have the same connectivity
+                                pattern_edge = pattern.has_edge(i, j)
+                                host_edge = host.has_edge(a, b)
+
+                                # IF (edge ij and not edge ab) OR (not edge ij and edge ab) 
+                                if pattern_edge != host_edge:
+                                    # NOT((i mapped to a) AND (j mapped to b)) = (NOT(i maps to a) OR Not(j maps to b))
+                                    clauses.append([-var(i, a, n),-var(j, b, n)])
+
+
 
     pattern_vertices_map_to_one_host_vertex_each(pattern_graph,host_graph)
     injectivity(pattern_graph,host_graph)
+    inductivity(pattern_graph,host_graph)
     return clauses
-    ## TODO: Decode clauses for induction result printing, solver call
+    ## TODO: result printing
 
 
 def call_solver(cnf,nr_vars,output_name,solver_name,verbosity):
@@ -120,6 +144,18 @@ def call_solver(cnf,nr_vars,output_name,solver_name,verbosity):
     print("running solver")
     return subprocess.run(['./' + solver_name, '-model', '-verb=' + str(verbosity) , output_name], stdout=subprocess.PIPE)
     print("done running solver")
+
+def print_result(result):
+    for line in result.stdout.decode('utf-8').split('\n'):
+        print(line)                 # print the whole output of the SAT solver to stdout, so you can see the raw output for yourself
+
+    # check the returned result
+    if result.returncode == 10:
+        print("PASS : Pattern graph is an induced Subgraph of Host")
+    elif result.returncode == 20:
+        print("FAIL : Pattern graph is NOT an induced subgraph of Host")
+    else:
+        print("Unknown result code")
 
 
 
@@ -165,9 +201,15 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-Pattern,Host = load_instance("test.in")
+Pattern,Host = load_instance(args.input)
+print(Pattern.Vertices)
+print(Host.Vertices)
 cnf = encode(Pattern,Host)
 print(cnf)
 result = call_solver(cnf,Pattern.VerticeCount * Host.VerticeCount,args.output,args.solver,args.verb)
-print(result)
+
+print_result(result)
+
+print("Result Done!")
+
 
